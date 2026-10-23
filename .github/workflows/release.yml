@@ -57,7 +57,7 @@ jobs:
           NAME=grid-v${VERSION}-${{ matrix.target }}
           mkdir -p dist/$NAME
           cp target/${{ matrix.target }}/release/{grid,grid-mapbuild,grid-sim} dist/$NAME/
-          cp README.md LICENSE openapi.json dist/$NAME/
+          cp README.md LICENSE openapi.json deploy/grid.service deploy/install.sh dist/$NAME/
           tar -C dist -czf dist/$NAME.tar.gz $NAME
           (cd dist && shasum -a 256 $NAME.tar.gz > $NAME.tar.gz.sha256)
           rm -r dist/$NAME

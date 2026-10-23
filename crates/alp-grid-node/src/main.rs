@@ -62,6 +62,12 @@ enum Cmd {
     },
     /// Generate a fresh Ed25519 seed (hex) for an agent or a node.
     Keygen,
+    /// Print this node's libp2p peer id and the multiaddrs to give to other operators (no running node needed).
+    PeerId {
+        /// Public DNS name or IP of this server, e.g. boot.example.org
+        #[arg(long)]
+        host: Option<String>,
+    },
 }
 
 fn config_path(cli: &Cli) -> PathBuf {
@@ -119,6 +125,30 @@ async fn main() -> Result<()> {
             println!("seed:   {}", hex::encode(kp.seed()));
             println!("pubkey: {}", kp.public().to_hex());
             println!("agent:  {}", alp_grid_core::ids::AgentId::from_pubkey(&kp.public()));
+        }
+        Cmd::PeerId { host } => {
+            let cfg = Config::load(&config_path(&cli))?;
+            let kp = config::load_or_create_key(&cfg.key_path())?;
+            let pid = alp_grid_net::peer_id_of(&kp.public()).context("deriving peer id")?;
+            println!("peer id: {pid}");
+            if let Some(h) = host {
+                let proto = if h.parse::<std::net::Ipv4Addr>().is_ok() {
+                    "ip4"
+                } else if h.parse::<std::net::Ipv6Addr>().is_ok() {
+                    "ip6"
+                } else {
+                    "dns4"
+                };
+                let port = cfg
+                    .network
+                    .listen
+                    .iter()
+                    .find_map(|a| a.split('/').skip_while(|p| *p != "udp" && *p != "tcp").nth(1).map(|p| p.to_string()))
+                    .unwrap_or_else(|| "4001".into());
+                println!("bootstrap addresses to publish:");
+                println!("  /{proto}/{h}/udp/{port}/quic-v1/p2p/{pid}");
+                println!("  /{proto}/{h}/tcp/{port}/p2p/{pid}");
+            }
         }
         Cmd::Search { text, at, api } => {
             let cfg = Config::load(&config_path(&cli))?;

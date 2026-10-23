@@ -6,6 +6,13 @@ use alp_grid_core::keys::Keypair;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
+/// Bootstrap nodes built into the binary. Empty until the first public node runs; `grid init` copies
+/// this list into the config, where operators can add their own.
+pub const DEFAULT_BOOTSTRAP: &[&str] = &[
+    // "/dns4/boot.agentlinkprotocol.org/udp/4001/quic-v1/p2p/12D3Koo…",
+    // "/dns4/boot.agentlinkprotocol.org/tcp/4001/p2p/12D3Koo…",
+];
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
