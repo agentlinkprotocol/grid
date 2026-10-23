@@ -1,0 +1,19 @@
+[package]
+name = "alp-grid-embed"
+description = "Agent Link Protocol Atlas: reference embedding model wrapper (alp-embed-v1)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = []
+# Real multilingual-e5-small through fastembed/ONNX. Downloads the model on first use.
+onnx = ["dep:fastembed"]
+
+[dependencies]
+alp-grid-core.workspace = true
+blake3.workspace = true
+thiserror.workspace = true
+parking_lot.workspace = true
+fastembed = { version = "4", optional = true }

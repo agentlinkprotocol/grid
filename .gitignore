@@ -1,0 +1,6 @@
+/target
+*.redb
+*.redb.lock
+/map-*.bin
+*.corpus.txt
+.DS_Store

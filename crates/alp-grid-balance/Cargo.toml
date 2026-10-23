@@ -1,0 +1,11 @@
+[package]
+name = "alp-grid-balance"
+description = "Agent Link Protocol Atlas: declared capacity, overflow, virtual nodes, soft migration"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+alp-grid-core.workspace = true
+serde.workspace = true

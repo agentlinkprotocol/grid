@@ -1,0 +1,29 @@
+[package]
+name = "alp-grid-sim"
+description = "Agent Link Protocol Atlas: in-memory network simulator and mandatory scenarios"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "grid-sim"
+path = "src/main.rs"
+
+[dependencies]
+alp-grid-core.workspace = true
+alp-grid-map.workspace = true
+alp-grid-embed.workspace = true
+alp-grid-store.workspace = true
+alp-grid-balance.workspace = true
+alp-grid-trust.workspace = true
+alp-grid-node.workspace = true
+tokio.workspace = true
+async-trait.workspace = true
+parking_lot.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

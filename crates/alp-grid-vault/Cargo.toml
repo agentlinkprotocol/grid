@@ -1,0 +1,16 @@
+[package]
+name = "alp-grid-vault"
+description = "Agent Link Protocol Atlas: encrypted, erasure-coded memory backup"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+alp-grid-core.workspace = true
+reed-solomon-erasure.workspace = true
+chacha20poly1305.workspace = true
+blake3.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+rand.workspace = true

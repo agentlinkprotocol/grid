@@ -1,0 +1,18 @@
+[package]
+name = "alp-grid-net"
+description = "Agent Link Protocol Atlas: libp2p transport (Kademlia routing, /alp/atlas/* request-response)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+alp-grid-core.workspace = true
+libp2p.workspace = true
+tokio.workspace = true
+futures.workspace = true
+async-trait.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true
+anyhow.workspace = true
+hex.workspace = true

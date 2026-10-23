@@ -1,0 +1,49 @@
+name: ci
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [develop]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Tests (unit + simulator scenarios)
+        run: cargo test --workspace
+      - name: Test vectors are up to date
+        run: |
+          cargo run -q -p alp-grid-core --bin gen-test-vectors -- /tmp/v1.json
+          diff <(python3 -m json.tool /tmp/v1.json) <(python3 -m json.tool test-vectors/v1.json)
+      - name: OpenAPI is up to date
+        run: |
+          cargo run -q -p alp-grid-node --bin grid -- openapi > /tmp/openapi.json
+          diff /tmp/openapi.json openapi.json
+      - name: Release build compiles
+        run: cargo build --release --bin grid --bin grid-mapbuild --bin grid-sim
+  docker:
+    name: docker image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
