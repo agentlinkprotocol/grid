@@ -106,7 +106,7 @@ and "The Grid" are trademarks of the project.
 
 ## Branches and releases
 
-- Work on `develop`; open a pull request to `main`. The `ci` workflow runs format, clippy, every test (including the
+- Work on `develop`; open a pull request to `main`. The `ci` workflow runs on the pull request only: format, clippy, every test (including the
   simulator scenarios), the test-vector and OpenAPI freshness checks and a release build. `main` is protected
   (`scripts/protect-main.sh`): the `tests` check must be green before merging.
 - Merging into `main` runs `release`: binaries for Linux x86_64, Linux arm64 and macOS arm64, a GitHub release
