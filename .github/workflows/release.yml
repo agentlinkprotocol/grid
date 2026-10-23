@@ -109,13 +109,21 @@ jobs:
           gh release edit latest --prerelease --notes "Moving release: always the last merge into main (currently $TAG, commit ${GITHUB_SHA::7}). Prefer the versioned releases for production."
 
   docker:
-    name: docker image (ghcr.io)
+    name: docker image ({{ matrix.arch }})
     needs: tests
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            os: ubuntu-24.04
+          - arch: arm64
+            os: ubuntu-24.04-arm
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
         with:
@@ -124,13 +132,43 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - id: version
         run: echo "version=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')" >> "$GITHUB_OUTPUT"
-      - uses: docker/build-push-action@v6
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:v${{ steps.version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          platforms: linux/${{ matrix.arch }}
+          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.arch }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.arch }}
+      - name: Export digest
+        run: |
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${{ steps.build.outputs.digest }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: digest-${{ matrix.arch }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+
+  docker-manifest:
+    name: docker manifest (latest + vX.Y.Z)
+    needs: docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digest-*
+          merge-multiple: true
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create multi-arch manifest
+        working-directory: /tmp/digests
+        run: |
+          IMAGE=ghcr.io/${{ github.repository }}
+          docker buildx imagetools create -t "$IMAGE:latest" -t "$IMAGE:v${{ needs.docker.outputs.version }}" $(printf "$IMAGE@sha256:%s " *)
+          docker buildx imagetools inspect "$IMAGE:latest"
