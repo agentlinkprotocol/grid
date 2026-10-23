@@ -1,0 +1,134 @@
+# Runs when a PR is merged into main. Tests again, builds the binaries for three targets,
+# publishes a versioned GitHub release (vX.Y.Z from Cargo.toml) plus a moving `latest` release,
+# and pushes the Docker image to ghcr.io/agentlinkprotocol/grid (:latest and :vX.Y.Z).
+name: release
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  packages: write
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+jobs:
+  tests:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+
+  build:
+    name: build ${{ matrix.target }}
+    needs: tests
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+          - os: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - run: cargo build --release --locked --target ${{ matrix.target }} --bin grid --bin grid-mapbuild --bin grid-sim
+      - name: Package
+        run: |
+          set -e
+          VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          NAME=grid-v${VERSION}-${{ matrix.target }}
+          mkdir -p dist/$NAME
+          cp target/${{ matrix.target }}/release/{grid,grid-mapbuild,grid-sim} dist/$NAME/
+          cp README.md LICENSE openapi.json deploy/grid.service deploy/install.sh dist/$NAME/
+          tar -C dist -czf dist/$NAME.tar.gz $NAME
+          (cd dist && shasum -a 256 $NAME.tar.gz > $NAME.tar.gz.sha256)
+          rm -r dist/$NAME
+      - uses: actions/upload-artifact@v4
+        with:
+          name: grid-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+
+  github-release:
+    name: github release (vX.Y.Z + latest)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          TAG="v$VERSION"
+          ls -la dist
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # versioned release: created once per version, assets refreshed on every merge of that version
+          if ! git rev-parse "$TAG" >/dev/null 2>&1; then
+            git tag "$TAG" && git push origin "$TAG"
+          fi
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --title "The Grid $TAG" --generate-notes
+          fi
+          gh release upload "$TAG" dist/* --clobber
+          gh release edit "$TAG" --latest
+          # moving "latest" release: always points at the tip of main
+          git tag -f latest && git push -f origin latest
+          if ! gh release view latest >/dev/null 2>&1; then
+            gh release create latest --title "latest (tip of main)" --notes "Moving release: always the last merge into main. Prefer the versioned releases for production." --prerelease
+          fi
+          gh release upload latest dist/* --clobber
+          gh release edit latest --prerelease --notes "Moving release: always the last merge into main (currently $TAG, commit ${GITHUB_SHA::7}). Prefer the versioned releases for production."
+
+  docker:
+    name: docker image (ghcr.io)
+    needs: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: version
+        run: echo "version=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:v${{ steps.version.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

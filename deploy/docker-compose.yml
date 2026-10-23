@@ -1,0 +1,19 @@
+# One Atlas node with Docker. `docker compose up -d`, then `docker compose exec grid cat /data/api.token`.
+services:
+  grid:
+    image: ghcr.io/agentlinkprotocol/grid:latest
+    container_name: grid
+    restart: unless-stopped
+    ports:
+      - "4001:4001/udp"
+      - "4001:4001/tcp"
+      - "127.0.0.1:7777:7777"
+    environment:
+      # comma-separated multiaddrs; leave empty to use the bootstrap nodes built into the binary
+      GRID_BOOTSTRAP: ""
+      GRID_OBSERVER: "0"
+      GRID_CAPACITY_GIB: "10"
+    volumes:
+      - grid-data:/data
+volumes:
+  grid-data:

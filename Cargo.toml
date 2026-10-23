@@ -1,0 +1,55 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+repository = "https://github.com/agentlinkprotocol/grid"
+authors = ["Agent Link Protocol contributors"]
+
+[workspace.dependencies]
+alp-grid-core = { path = "crates/alp-grid-core" }
+alp-grid-map = { path = "crates/alp-grid-map" }
+alp-grid-embed = { path = "crates/alp-grid-embed" }
+alp-grid-store = { path = "crates/alp-grid-store" }
+alp-grid-balance = { path = "crates/alp-grid-balance" }
+alp-grid-trust = { path = "crates/alp-grid-trust" }
+alp-grid-vault = { path = "crates/alp-grid-vault" }
+alp-grid-inbox = { path = "crates/alp-grid-inbox" }
+alp-grid-net = { path = "crates/alp-grid-net" }
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ciborium = "0.2"
+blake3 = "1"
+ed25519-dalek = { version = "2", features = ["rand_core"] }
+x25519-dalek = { version = "2", features = ["static_secrets"] }
+chacha20poly1305 = "0.10"
+data-encoding = "2"
+hex = "0.4"
+half = { version = "2", features = ["serde"] }
+thiserror = "2"
+anyhow = "1"
+rand = "0.8"
+rand_chacha = "0.3"
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+redb = "2"
+reed-solomon-erasure = "6"
+axum = "0.8"
+utoipa = { version = "5", features = ["axum_extras"] }
+clap = { version = "4", features = ["derive"] }
+toml = "0.8"
+libp2p = { version = "0.55", features = ["tokio", "tcp", "quic", "noise", "yamux", "kad", "identify", "request-response", "cbor", "macros", "dns", "ping", "autonat", "dcutr", "relay", "ed25519"] }
+futures = "0.3"
+parking_lot = "0.12"
+bytes = "1"
+alp-grid-node = { path = "crates/alp-grid-node" }
+async-trait = "0.1"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1

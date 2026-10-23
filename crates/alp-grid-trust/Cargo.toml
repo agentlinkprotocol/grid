@@ -1,0 +1,15 @@
+[package]
+name = "alp-grid-trust"
+description = "Agent Link Protocol Atlas: challenges, service seniority, reputation, quotas, diversity, transparency ledger"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+alp-grid-core.workspace = true
+alp-grid-store.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+parking_lot.workspace = true
+tracing.workspace = true

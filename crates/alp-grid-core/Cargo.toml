@@ -1,0 +1,29 @@
+[package]
+name = "alp-grid-core"
+description = "Agent Link Protocol Atlas: core types, canonical encoding, identities, signatures, validation"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+ciborium.workspace = true
+blake3.workspace = true
+ed25519-dalek.workspace = true
+data-encoding.workspace = true
+hex.workspace = true
+thiserror.workspace = true
+rand.workspace = true
+half.workspace = true
+async-trait.workspace = true
+utoipa = { workspace = true, optional = true }
+
+[features]
+default = []
+openapi = ["dep:utoipa"]
+
+[[bin]]
+name = "gen-test-vectors"
+path = "src/bin/gen_test_vectors.rs"

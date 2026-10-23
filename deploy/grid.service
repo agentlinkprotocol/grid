@@ -1,0 +1,29 @@
+# The Grid: Agent Link Protocol Atlas node. Installed by deploy/install.sh at /etc/systemd/system/grid.service.
+[Unit]
+Description=The Grid (Agent Link Protocol Atlas node)
+Documentation=https://docs.agentlinkprotocol.org/node/install
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=grid
+Group=grid
+ExecStart=/usr/local/bin/grid run --config /var/lib/grid/grid.toml
+Restart=always
+RestartSec=5
+Environment=RUST_LOG=info,libp2p=warn
+LimitNOFILE=65536
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/grid
+
+[Install]
+WantedBy=multi-user.target

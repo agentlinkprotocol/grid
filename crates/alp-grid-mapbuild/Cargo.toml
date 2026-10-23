@@ -1,0 +1,20 @@
+[package]
+name = "alp-grid-mapbuild"
+description = "Agent Link Protocol Atlas: reproducible builder of the semantic map (hierarchical k-means)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "grid-mapbuild"
+path = "src/main.rs"
+
+[dependencies]
+alp-grid-core.workspace = true
+alp-grid-map.workspace = true
+alp-grid-embed.workspace = true
+clap.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+anyhow.workspace = true
