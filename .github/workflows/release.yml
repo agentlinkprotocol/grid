@@ -80,6 +80,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          pattern: grid-*
           merge-multiple: true
       - name: Publish
         env:
@@ -122,7 +123,7 @@ jobs:
           gh release edit latest --prerelease --notes "Moving release: always the last merge into main (currently $TAG, commit ${GITHUB_SHA::7}). Prefer the versioned releases for production."
 
   docker:
-    name: docker image ({{ matrix.arch }})
+    name: docker image (${{ matrix.arch }})
     needs: tests
     strategy:
       matrix:
@@ -156,7 +157,9 @@ jobs:
       - name: Export digest
         run: |
           mkdir -p /tmp/digests
-          touch "/tmp/digests/${{ steps.build.outputs.digest }}"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "/tmp/digests/${digest#sha256:}"   # artifact paths may not contain ':'
+
       - uses: actions/upload-artifact@v4
         with:
           name: digest-${{ matrix.arch }}
