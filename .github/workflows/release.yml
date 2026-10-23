@@ -89,6 +89,19 @@ jobs:
           VERSION=$(grep -m1 '^version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
           TAG="v$VERSION"
           ls -la dist
+          # Replace assets one by one with retries: `gh release upload --clobber` occasionally gets an
+          # HTTP 500 from the API while deleting the old asset.
+          upload_assets() {
+            for f in dist/*; do
+              name=$(basename "$f")
+              for attempt in 1 2 3 4 5; do
+                gh release delete-asset "$1" "$name" -y >/dev/null 2>&1 || true
+                if gh release upload "$1" "$f"; then break; fi
+                echo "upload of $name to $1 failed (attempt $attempt), retrying…"; sleep $((attempt * 10))
+                [ "$attempt" = 5 ] && exit 1
+              done
+            done
+          }
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # versioned release: created once per version, assets refreshed on every merge of that version
@@ -98,14 +111,14 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --title "The Grid $TAG" --generate-notes
           fi
-          gh release upload "$TAG" dist/* --clobber
+          upload_assets "$TAG"
           gh release edit "$TAG" --latest
           # moving "latest" release: always points at the tip of main
           git tag -f latest && git push -f origin latest
           if ! gh release view latest >/dev/null 2>&1; then
             gh release create latest --title "latest (tip of main)" --notes "Moving release: always the last merge into main. Prefer the versioned releases for production." --prerelease
           fi
-          gh release upload latest dist/* --clobber
+          upload_assets latest
           gh release edit latest --prerelease --notes "Moving release: always the last merge into main (currently $TAG, commit ${GITHUB_SHA::7}). Prefer the versioned releases for production."
 
   docker:
